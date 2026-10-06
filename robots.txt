@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://inmanjeffrey89-cell.github.io/data-tools/sitemap.xml
