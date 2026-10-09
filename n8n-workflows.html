@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>n8n workflow templates — app reviews, YouTube transcripts, keyword research</title><meta name="description" content="Ready-to-import n8n workflows: weekly App Store + Google Play review digest, YouTube channel transcripts to Google Sheets, autocomplete keyword research, AI video summaries. Import from URL and run.">
+<link rel="canonical" href="https://inmanjeffrey89-cell.github.io/data-tools/n8n-workflows">
+<style>body{max-width:720px;margin:2rem auto;padding:0 1rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a}
+h1{font-size:1.8rem;line-height:1.2}h2{margin-top:2.2rem}code,pre{background:#f4f4f5;border-radius:6px}pre{padding:1rem;overflow:auto}code{padding:2px 5px}
+a{color:#1d4ed8}.cta{display:inline-block;background:#1d4ed8;color:#fff;padding:.6rem 1rem;border-radius:8px;text-decoration:none;margin:.3rem .3rem .3rem 0}
+.muted{color:#666}nav a{margin-right:1rem}.cost{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.6rem 1rem;margin:.6rem 0}</style></head><body>
+<nav><a href="/data-tools/">← all tools</a></nav>
+<h1>n8n workflow templates</h1>
+<p>Four ready-to-import workflows for jobs people usually babysit by hand. Each one calls a hosted scraper over plain HTTP — no community nodes, works on n8n Cloud and self-hosted. In n8n: <strong>Workflow → Import from URL</strong>, paste the link, connect two credentials, run.</p>
+
+<h2 id="app-review-digest">1 · Weekly App Store + Google Play review digest → Gmail</h2>
+<p>Every Monday: both stores' new reviews for your app, one email — counts, average rating per store, and the negative reviews that need a reply, quoted with author and version.</p>
+<pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t1-app-review-digest.json</pre>
+<div class="cost">Runs on <a href="https://apify.com/beacondata/app-store-reviews-scraper">App Store Reviews Scraper</a> ($0.0002/review) + <a href="https://apify.com/beacondata/google-play-reviews-scraper">Google Play Reviews Scraper</a> ($0.0001/review). A typical 200+200 week ≈ <strong>$0.06</strong>; quiet weeks cost $0. Hard $1 cap per run baked in.</div>
+
+<h2 id="channel-transcripts">2 · Whole YouTube channel → transcripts in Google Sheets</h2>
+<p>Paste a channel URL, get one row per video — title, URL, language, word count, full transcript. The back catalog becomes a knowledge base you can search, embed, or feed to AI.</p>
+<pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t2-channel-transcripts-sheets.json</pre>
+<div class="cost">Runs on <a href="https://apify.com/beacondata/youtube-channel-transcript-scraper">YouTube Channel Transcript Scraper</a> ($0.002/transcript — a 25-video channel ≈ <strong>$0.05</strong>; videos without captions are never charged).</div>
+
+<h2 id="keyword-research">3 · Keyword ideas from Google / YouTube / Amazon / Bing autocomplete → Google Sheets</h2>
+<p>Seed keywords in, hundreds of real typed-by-humans phrases out, one row per idea — ready for clustering, briefs, or Ads planning.</p>
+<pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t3-keyword-research-sheets.json</pre>
+<div class="cost">Runs on <a href="https://apify.com/beacondata/keyword-research-scraper">Keyword Research &amp; Autocomplete Scraper</a> ($0.01 per seed that returns ideas — a 20-seed session ≈ <strong>$0.20</strong>; empty seeds free).</div>
+
+<h2 id="video-summary">4 · YouTube video → GPT-4o-mini executive brief → Gmail</h2>
+<p>Drop in a video URL; get a TL;DR, five timestamped key points, notable quotes, and a who-should-watch verdict in your inbox. Transcript fetching prefers human captions over auto-generated.</p>
+<pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t4-youtube-ai-summary-gmail.json</pre>
+<div class="cost">Runs on <a href="https://apify.com/beacondata/youtube-transcript-scraper">YouTube Transcript Scraper</a> ($0.002/video; uncaptioned videos free) + your OpenAI key (under a cent per brief with GPT-4o-mini).</div>
+
+<h2>Setup (same for all four)</h2>
+<ol>
+<li>Create an <a href="https://apify.com">Apify</a> account and copy your API token (Console → Settings → API &amp; Integrations).</li>
+<li>In n8n, add a <strong>Header Auth</strong> credential — Name: <code>Authorization</code>, Value: <code>Bearer YOUR_APIFY_TOKEN</code> — and select it on the HTTP node(s).</li>
+<li>Open the Config node, set your own values, connect Gmail/Sheets/OpenAI on the last node, hit test.</li>
+</ol>
+<p class="muted">Each workflow documents itself — the sticky notes inside carry the full description, costs, and setup. MIT-licensed like everything else here. Built by an indie dev; issues → GitHub.</p>
+</body></html>

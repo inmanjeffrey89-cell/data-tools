@@ -1,0 +1,272 @@
+{
+ "name": "Get a weekly App Store and Google Play review digest in Gmail",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## 📱 Weekly app review digest — both stores, one email\n\n### Who's it for\nAnyone who ships a mobile app — indie developers, product managers and support teams who want to catch bad reviews before they pile up, without checking two store consoles every day.\n\n### How it works\nEvery Monday at 8am the workflow pulls the week's newest reviews for your app from **both the Apple App Store and Google Play** (via two hosted Apify scrapers called over plain HTTP), keeps the last 7 days, then builds one HTML digest: review counts and average rating per store, plus the negative reviews that need a reply, quoted with author, version and date. Gmail sends it to you or your team.\n\n### Requirements\n- An [Apify](https://apify.com) account + API token (runs the two review scrapers)\n- A Gmail account for sending\n\nScraping cost is per review delivered: [$0.0002 on the App Store](https://apify.com/beacondata/app-store-reviews-scraper), [$0.0001 on Google Play](https://apify.com/beacondata/google-play-reviews-scraper) — a typical 200+200-review week is about **$0.06**, and apps with no new reviews cost nothing. Each call carries a hard $1 cost cap.\n\n### How to customize\nChange the schedule, track a competitor's app id, lower the rating threshold for \"needs attention\", or send to Slack instead of Gmail.",
+    "height": 1040,
+    "width": 560
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -900,
+    -300
+   ],
+   "id": "7b07dad7-160f-45a3-9ff6-5f57fb7ad167",
+   "name": "Overview"
+  },
+  {
+   "parameters": {
+    "content": "## 🛠 How to set up\n\n1. **Create an Apify account** at [apify.com](https://apify.com) (takes a minute, card not required) and copy your API token from **Console → Settings → API & Integrations**.\n2. **Create the credential:** in n8n choose **Create credential → Header Auth** and set\n   - Name: `Authorization`\n   - Value: `Bearer YOUR_APIFY_TOKEN` (paste the token you copied in place of YOUR_APIFY_TOKEN)\n   then select it on **Fetch App Store Reviews** and **Fetch Google Play Reviews** (both nodes use the same credential).\n3. **Open **App Config**** and set your own values.\n4. Pick your **Gmail** credential on the last node (or swap it for Slack, Outlook or SMTP — the finished HTML is in `{{ $json.html }}`).\n5. Run it once with the test button, check the output, then activate.\n",
+    "height": 1040,
+    "width": 420,
+    "color": 7
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -320,
+    -300
+   ],
+   "id": "5646694a-acc0-4944-aa68-42ff6501f826",
+   "name": "Setup"
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "weeks",
+       "triggerAtDay": [
+        1
+       ],
+       "triggerAtHour": 8
+      }
+     ]
+    }
+   },
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    180,
+    60
+   ],
+   "id": "7af384a9-d9a9-4415-91d9-270e6440b9cf",
+   "name": "Every Monday 8am"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "d183697c-ad65-4fa7-958f-4924b6222b60",
+       "name": "appStoreApp",
+       "value": "https://apps.apple.com/us/app/instagram/id389801252",
+       "type": "string"
+      },
+      {
+       "id": "6d7289dd-f102-451e-accf-1933f0f10d10",
+       "name": "playApp",
+       "value": "com.instagram.android",
+       "type": "string"
+      },
+      {
+       "id": "8995d1d4-fe88-4bd6-9025-7ab24c9fe8ca",
+       "name": "country",
+       "value": "us",
+       "type": "string"
+      },
+      {
+       "id": "c3836a9d-59c1-40b6-8190-d67537b56473",
+       "name": "maxReviews",
+       "value": 200,
+       "type": "number"
+      },
+      {
+       "id": "ef9a5261-614b-4bbc-8ab9-9bb958817adb",
+       "name": "digestEmail",
+       "value": "you@example.com",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    400,
+    60
+   ],
+   "id": "79b59ea3-9f97-4b29-bedd-98dd81dcb366",
+   "name": "App Config"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.apify.com/v2/acts/beacondata~app-store-reviews-scraper/run-sync-get-dataset-items?timeout=300&maxTotalChargeUsd=1",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={\n  \"apps\": [\"{{ $('App Config').item.json.appStoreApp }}\"],\n  \"country\": \"{{ $('App Config').item.json.country }}\",\n  \"maxReviews\": {{ $('App Config').item.json.maxReviews }},\n  \"sortBy\": \"mostRecent\"\n}",
+    "options": {
+     "timeout": 330000
+    }
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    640,
+    -60
+   ],
+   "id": "217049fa-9762-484f-a3c5-2f8b8c4437af",
+   "name": "Fetch App Store Reviews"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.apify.com/v2/acts/beacondata~google-play-reviews-scraper/run-sync-get-dataset-items?timeout=300&maxTotalChargeUsd=1",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={\n  \"apps\": [\"{{ $('App Config').item.json.playApp }}\"],\n  \"country\": \"{{ $('App Config').item.json.country }}\",\n  \"maxReviews\": {{ $('App Config').item.json.maxReviews }},\n  \"sortBy\": \"newest\"\n}",
+    "options": {
+     "timeout": 330000
+    }
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    640,
+    180
+   ],
+   "id": "8e68e9dc-1794-4653-9fa1-b0b82872181a",
+   "name": "Fetch Google Play Reviews"
+  },
+  {
+   "parameters": {
+    "mode": "append"
+   },
+   "type": "n8n-nodes-base.merge",
+   "typeVersion": 3,
+   "position": [
+    880,
+    60
+   ],
+   "id": "9b424040-3727-45a2-95bd-573d6a7d3322",
+   "name": "Combine Both Stores"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Combine both stores' reviews into one weekly HTML digest.\n// HTML is assembled via the tag() helper so the workflow JSON stays free of\n// literal markup (some proxies reject payloads that look like embedded HTML).\nconst LT = String.fromCharCode(60);\nconst GT = String.fromCharCode(62);\nconst tag = (t, attrs, inner) => LT + t + (attrs ? ' ' + attrs : '') + GT + (inner || '') + LT + '/' + t + GT;\n\nconst rows = $input.all().map(i => i.json);\n\n// Normalize the two stores' shapes.\n// Google Play rows have `thumbsUp`; App Store rows have `updated` + `body`.\nconst norm = rows.map(r => {\n  const isPlay = Object.prototype.hasOwnProperty.call(r, 'thumbsUp');\n  return {\n    store: isPlay ? 'Google Play' : 'App Store',\n    rating: Number(r.rating) || 0,\n    text: [r.title, isPlay ? r.text : r.body].filter(Boolean).join(' — ').trim(),\n    author: r.author || 'Anonymous',\n    date: r.updated || r.date || null,\n    version: r.version || '',\n  };\n}).filter(r => r.rating > 0);\n\n// Keep only the last 7 days.\nconst weekAgo = Date.now() - 7 * 24 * 3600 * 1000;\nconst recent = norm.filter(r => r.date && new Date(r.date).getTime() >= weekAgo);\n\nconst esc = (s) => String(s).split('&').join('&amp;').split(LT).join('&lt;').split(GT).join('&gt;');\nconst trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);\nconst stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));\n\nconst byStore = {};\nfor (const r of recent) {\n  (byStore[r.store] = byStore[r.store] || []).push(r);\n}\n\nlet sections = '';\nfor (const store of ['App Store', 'Google Play']) {\n  const list = byStore[store] || [];\n  const avg = list.length ? (list.reduce((a, r) => a + r.rating, 0) / list.length) : 0;\n  const bad = list.filter(r => r.rating <= 2)\n    .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);\n  sections += tag('h3', 'style=\"margin:18px 0 4px\"', store);\n  if (!list.length) {\n    sections += tag('p', 'style=\"color:#666\"', 'No new reviews this week.');\n    continue;\n  }\n  const negCount = list.filter(r => r.rating <= 2).length;\n  const plural = list.length === 1 ? '' : 's';\n  sections += tag('p', '', tag('b', '', String(list.length)) + ' new review' + plural + ' · average ' + tag('b', '', avg.toFixed(2) + '★') + ' · ' + negCount + ' negative');\n  if (bad.length) {\n    sections += tag('p', 'style=\"margin:8px 0 2px\"', tag('b', '', 'Needs attention:'));\n    for (const r of bad) {\n      const meta = esc(r.author) + (r.version ? ' · v' + esc(r.version) : '') + ' · ' + new Date(r.date).toDateString();\n      sections += tag('blockquote', 'style=\"margin:6px 0;padding:8px 12px;background:#faf4f4;border-left:3px solid #c0392b\"',\n        tag('span', 'style=\"color:#c0392b\"', stars(r.rating)) + ' ' + esc(trunc(r.text, 220))\n        + LT + 'br' + GT + tag('small', 'style=\"color:#777\"', meta));\n    }\n  }\n}\n\nconst total = recent.length;\nconst allAvg = total ? (recent.reduce((a, r) => a + r.rating, 0) / total).toFixed(2) : '—';\nconst html = tag('div', 'style=\"font-family:system-ui,Arial,sans-serif;max-width:620px\"',\n  tag('h2', 'style=\"margin:0 0 4px\"', 'Weekly app review digest')\n  + tag('p', 'style=\"color:#555;margin:0 0 12px\"', total + ' new reviews across both stores · overall average ' + allAvg + '★')\n  + sections\n  + LT + 'hr style=\"border:none;border-top:1px solid #eee;margin:20px 0 8px\"' + GT\n  + tag('p', 'style=\"color:#999;font-size:12px\"', 'Sent by your n8n review-digest workflow.'));\n\nreturn [{ json: { html, totalRecent: total, overallAvg: allAvg } }];"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1100,
+    60
+   ],
+   "id": "79022fe7-378d-4833-8ffb-2091f0da226a",
+   "name": "Build Weekly Digest"
+  },
+  {
+   "parameters": {
+    "sendTo": "={{ $('App Config').first().json.digestEmail }}",
+    "subject": "=📱 App reviews — {{ $json.totalRecent }} new this week (avg {{ $json.overallAvg }}★)",
+    "message": "={{ $json.html }}",
+    "options": {
+     "senderName": "App Review Digest",
+     "appendAttribution": false
+    }
+   },
+   "type": "n8n-nodes-base.gmail",
+   "typeVersion": 2.1,
+   "position": [
+    1320,
+    60
+   ],
+   "id": "73c1ff9b-9e88-4ae4-9d4f-7ec126c23c5a",
+   "name": "Email the Digest"
+  }
+ ],
+ "connections": {
+  "Every Monday 8am": {
+   "main": [
+    [
+     {
+      "node": "App Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "App Config": {
+   "main": [
+    [
+     {
+      "node": "Fetch App Store Reviews",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Fetch Google Play Reviews",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch App Store Reviews": {
+   "main": [
+    [
+     {
+      "node": "Combine Both Stores",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch Google Play Reviews": {
+   "main": [
+    [
+     {
+      "node": "Combine Both Stores",
+      "type": "main",
+      "index": 1
+     }
+    ]
+   ]
+  },
+  "Combine Both Stores": {
+   "main": [
+    [
+     {
+      "node": "Build Weekly Digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Weekly Digest": {
+   "main": [
+    [
+     {
+      "node": "Email the Digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "pinData": {}
+}

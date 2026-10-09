@@ -1,0 +1,190 @@
+{
+ "name": "Extract transcripts from entire YouTube channels to Google Sheets",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## 🎬 Turn a whole YouTube channel into a transcript knowledge base\n\n### Who's it for\nResearchers, content teams and AI builders who need the text of a channel's back catalog — for RAG corpora, competitor research, newsletter mining or SEO briefs — without clicking through videos one by one.\n\n### How it works\nPaste a channel URL, handle or playlist into the Config node and run. A hosted Apify actor (called over plain HTTP, no API key juggling beyond one token) finds the channel's videos, downloads each transcript, and returns clean text per video. A Code node flattens the results to one row per video — URL, title, channel, language, word count and the full transcript — and appends them to your Google Sheet.\n\n### Requirements\n- An [Apify](https://apify.com) account + API token\n- A Google account for Sheets\n\nCost is [$0.002 per delivered transcript](https://apify.com/beacondata/youtube-channel-transcript-scraper) — a 25-video channel costs about **$0.05**. Videos without captions, deleted or restricted videos are never charged, and the call carries a hard $1 cost cap.\n\n### How to customize\nRaise `maxVideos`, change the transcript `language`, schedule it weekly to catch new uploads, or point the output at Notion or a vector store instead of Sheets.",
+    "height": 1040,
+    "width": 560
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -900,
+    -300
+   ],
+   "id": "1b988018-89c6-45fd-86af-5744fde3f39b",
+   "name": "Overview"
+  },
+  {
+   "parameters": {
+    "content": "## 🛠 How to set up\n\n1. **Create an Apify account** at [apify.com](https://apify.com) (takes a minute, card not required) and copy your API token from **Console → Settings → API & Integrations**.\n2. **Create the credential:** in n8n choose **Create credential → Header Auth** and set\n   - Name: `Authorization`\n   - Value: `Bearer YOUR_APIFY_TOKEN` (paste the token you copied in place of YOUR_APIFY_TOKEN)\n   then select it on **Fetch Channel Transcripts**.\n3. **Open **Config**** and set your own values.\n4. Pick your **Google Sheets** credential on the last node and choose the spreadsheet + sheet to append to.\n5. Run it once with the test button, check the output, then activate.\n",
+    "height": 1040,
+    "width": 420,
+    "color": 7
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -320,
+    -300
+   ],
+   "id": "57082679-c169-4575-8e3b-95b0f1163a46",
+   "name": "Setup"
+  },
+  {
+   "parameters": {},
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    180,
+    60
+   ],
+   "id": "940c4241-df46-46c1-87d2-2dcc23b46544",
+   "name": "When clicking 'Test workflow'"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "a17eae22-aa35-4c8b-a452-033f99290e20",
+       "name": "channelSource",
+       "value": "https://www.youtube.com/@NASA",
+       "type": "string"
+      },
+      {
+       "id": "aa1d539d-558e-48d3-9691-c0d6c64ac74d",
+       "name": "maxVideos",
+       "value": 25,
+       "type": "number"
+      },
+      {
+       "id": "280bd462-2d91-4e96-ae67-9ba11681b78a",
+       "name": "language",
+       "value": "en",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    400,
+    60
+   ],
+   "id": "507e937f-41d1-403c-8fda-c4c8951c0ffe",
+   "name": "Config"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.apify.com/v2/acts/beacondata~youtube-channel-transcript-scraper/run-sync-get-dataset-items?timeout=300&maxTotalChargeUsd=1",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={\n  \"source\": \"{{ $('Config').item.json.channelSource }}\",\n  \"maxVideos\": {{ $('Config').item.json.maxVideos }},\n  \"language\": \"{{ $('Config').item.json.language }}\",\n  \"preferManual\": true\n}",
+    "options": {
+     "timeout": 330000
+    }
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    640,
+    60
+   ],
+   "id": "e731355f-f81c-4cac-bd01-08597f475631",
+   "name": "Fetch Channel Transcripts"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Flatten each transcript into Sheet-ready columns (one row per video).\n// Dataset rows with an `error` field (no captions, deleted or restricted\n// videos) are skipped — the actor never charges for those anyway.\nconst CELL_LIMIT = 45000; // Google Sheets caps a cell at 50,000 chars; keep headroom.\nconst trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);\n\nconst rows = [];\nfor (const { json: r } of $input.all()) {\n  if (r.error) continue;\n  const text = String(r.text || '');\n  rows.push({\n    json: {\n      videoUrl: r.url || (r.videoId ? 'https://www.youtube.com/watch?v=' + r.videoId : ''),\n      title: r.title || '',\n      channel: r.channel || '',\n      language: r.language || '',\n      words: text ? text.trim().split(/\\s+/).length : 0,\n      transcript: trunc(text, CELL_LIMIT),\n    },\n  });\n}\nreturn rows;"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    880,
+    60
+   ],
+   "id": "ec7fb12f-3f64-44b6-8214-032150869725",
+   "name": "Flatten for Sheets"
+  },
+  {
+   "parameters": {
+    "operation": "append",
+    "documentId": {
+     "__rl": true,
+     "mode": "list",
+     "value": ""
+    },
+    "sheetName": {
+     "__rl": true,
+     "mode": "list",
+     "value": ""
+    }
+   },
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.7,
+   "position": [
+    1100,
+    60
+   ],
+   "id": "09306e7f-8b91-4c96-a85b-5e6c1607cf8f",
+   "name": "Append to Google Sheets"
+  }
+ ],
+ "connections": {
+  "When clicking 'Test workflow'": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Fetch Channel Transcripts",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch Channel Transcripts": {
+   "main": [
+    [
+     {
+      "node": "Flatten for Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Flatten for Sheets": {
+   "main": [
+    [
+     {
+      "node": "Append to Google Sheets",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "pinData": {}
+}
