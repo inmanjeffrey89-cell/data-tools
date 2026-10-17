@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fix "Sign in to confirm you're not a bot" for YouTube transcripts on a server</title>
+<meta name="description" content="Why yt-dlp and youtube-transcript-api fail on AWS, Vercel, Render or a VPS with &quot;Sign in to confirm you're not a bot&quot; (RequestBlocked, IpBlocked, LOGIN_REQUIRED), and the fixes that work, from free to hosted.">
+<link rel="canonical" href="https://inmanjeffrey89-cell.github.io/data-tools/youtube-sign-in-to-confirm-not-a-bot">
+<style>body{max-width:720px;margin:2rem auto;padding:0 1rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a}
+h1{font-size:1.8rem;line-height:1.2}h2{margin-top:2.2rem}h3{margin-top:1.6rem}code,pre{background:#f4f4f5;border-radius:6px}pre{padding:1rem;overflow:auto}code{padding:2px 5px}
+a{color:#1d4ed8}.muted{color:#666}nav a{margin-right:1rem}table{border-collapse:collapse;width:100%}td,th{border:1px solid #e5e5e5;padding:.5rem;text-align:left;vertical-align:top}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.6rem 1rem}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Fix \"Sign in to confirm you're not a bot\" for YouTube transcripts on a server","datePublished":"2026-10-17","author":{"@type":"Person","name":"Jeffrey Inman"}}</script>
+</head><body>
+<nav class=muted><a href="/data-tools/">All tools</a></nav>
+<h1>Fix "Sign in to confirm you're not a bot" when fetching YouTube transcripts on a server</h1>
+<p>Your transcript code works on your laptop. You deploy it to AWS, Vercel, Render, Railway or a VPS, and every video fails with one of these:</p>
+<pre>ERROR: [youtube] dQw4w9WgXcQ: Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies for the authentication.
+youtube_transcript_api._errors.RequestBlocked / IpBlocked
+playabilityStatus: {"status": "LOGIN_REQUIRED", "reason": "Sign in to confirm you're not a bot"}</pre>
+<p>Nothing is wrong with your code. YouTube decided the request came from a bot because of <strong>where</strong> it came from. Here is what is going on, how to tell it apart from a video that really is private, and the fixes that work, roughly from free to paid.</p>
+
+<h2>Why it only happens on servers</h2>
+<p>YouTube scores each request by its IP address. Home and mobile connections look like people. Cloud and datacenter ranges (AWS, Google Cloud, Azure, Hetzner, DigitalOcean, Vercel's functions) look like scrapers, so YouTube asks them to sign in before it serves the player data that captions come from. A few requests a day may get through; past a few hundred, most of them won't. That is why it seems random at first and then fails on every video.</p>
+
+<h2>Is it the bot check, or is the video really private?</h2>
+<p>Both come back as <code>LOGIN_REQUIRED</code>, which is why the error is confusing. Look at the reason text:</p>
+<table>
+<tr><th>Reason text</th><th>What it means</th><th>Retry?</th></tr>
+<tr><td>Sign in to confirm you're not a bot</td><td>Your IP is flagged. The video is fine.</td><td>Yes, from another IP or client</td></tr>
+<tr><td>This video is private / Sign in to confirm your age / members-only</td><td>The video really needs an account</td><td>No</td></tr>
+<tr><td>Video unavailable</td><td>Deleted or blocked in your region</td><td>No</td></tr>
+</table>
+<p>Checking that string before you retry saves you from burning proxy bandwidth on videos that will never work.</p>
+
+<h2>Fixes, from free to paid</h2>
+
+<h3>1. Update yt-dlp and give it a JavaScript runtime (free, try this first)</h3>
+<p>Recent yt-dlp versions need an external JavaScript runtime to talk to YouTube. Without one, extraction fails in ways that can look like the bot check. Install Node.js or Deno, then:</p>
+<pre>python -m pip install -U "yt-dlp[default]"
+echo '--js-runtimes node' >> ~/.config/yt-dlp/config
+yt-dlp --write-subs --write-auto-subs --sub-langs "en.*" --skip-download "https://youtu.be/dQw4w9WgXcQ"</pre>
+<p>If it was a missing runtime, this fixes it. If it was the IP, it won't, and you need one of the options below.</p>
+
+<h3>2. Ask for the player data as a different client (free)</h3>
+<p>YouTube serves several apps (web, mobile, TV), and the bot check isn't applied the same way to all of them, so a video blocked for one client often loads for another. In yt-dlp that's <code>--extractor-args "youtube:player_client=..."</code>; the yt-dlp wiki lists which clients currently work, and that list changes. The free, MIT-licensed <a href="https://github.com/inmanjeffrey89-cell/yt-transcript-cli">yt-transcript-cli</a> does this automatically for captions (Android, then iOS, then web):</p>
+<pre>npx yt-transcript-cli "https://youtu.be/dQw4w9WgXcQ" --json</pre>
+<p>It exits with code 2 and <code>BLOCKED</code> when every client is refused, so a script can tell the difference between "blocked" and "this video has no captions" (exit 3). On a heavily flagged IP all clients can be refused, and then you need a different IP.</p>
+
+<h3>3. Cookies from a logged-in account (free, fragile)</h3>
+<pre>yt-dlp --cookies cookies.txt --write-auto-subs --skip-download "URL"</pre>
+<p>This is what the error message suggests, and it works for a while. The downsides: cookies expire and need refreshing, every request is tied to a real Google account, and that account can be restricted for automated use. Use a throwaway account, never your main one.</p>
+
+<h3>4. Proof-of-origin tokens (free, more setup)</h3>
+<p>yt-dlp supports PO tokens through provider plugins. They can clear the check without cookies, but you are running and maintaining another moving part that YouTube changes regularly. The yt-dlp wiki's PO Token Guide covers it.</p>
+
+<h3>5. Route requests through residential IPs (paid)</h3>
+<p>Residential proxies make your requests look like home connections. <code>youtube-transcript-api</code> supports them directly:</p>
+<pre>from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import GenericProxyConfig
+
+ytt = YouTubeTranscriptApi(proxy_config=GenericProxyConfig(
+    https_url="http://USER:PASS@your-residential-proxy:PORT"))
+transcript = ytt.fetch("dQw4w9WgXcQ", languages=["en"])</pre>
+<p>It also has a <code>WebshareProxyConfig</code> helper. Rotating residential bandwidth is the reliable fix, and also the expensive one. One developer who hit the block at a few hundred requests a day reported going through about $200 of residential proxy in a month, and still had to babysit the retry logic.</p>
+
+<h3>6. Use a hosted transcript API (paid per use)</h3>
+<p>If transcripts are one step in your product rather than the product itself, it is usually cheaper to call a service that already handles client rotation, residential retries and the reason-string checks. I run two versions of one (disclosure: they're mine):</p>
+<ul>
+<li><a href="https://apify.com/beacondata/youtube-transcript-scraper">YouTube Transcript Scraper on Apify</a>: $2 per 1,000 transcripts, and videos without captions aren't charged. Apify's free plan includes $5 of monthly credit, which covers about 2,500 transcripts.
+<pre>curl -X POST "https://api.apify.com/v2/acts/beacondata~youtube-transcript-scraper/run-sync-get-dataset-items?token=YOUR_APIFY_TOKEN" \
+  -H "Content-Type: application/json" -d '{"videoUrls":["https://youtu.be/dQw4w9WgXcQ"]}'</pre></li>
+<li><a href="https://rapidapi.com/beacondata/api/youtube-transcript-api23">YouTube Transcript API on RapidAPI</a>: one GET request returning JSON, plain text or SRT; 100 free requests a month, then from $9.99 for 5,000.
+<pre>curl "https://youtube-transcript-api23.p.rapidapi.com/transcript?url=https://youtu.be/dQw4w9WgXcQ&amp;format=text" \
+  -H "x-rapidapi-key: YOUR_RAPIDAPI_KEY" -H "x-rapidapi-host: youtube-transcript-api23.p.rapidapi.com"</pre></li>
+</ul>
+<p>Other hosted options exist too; whichever you pick, check that a failed or caption-less video isn't billed.</p>
+
+<h2>Which one should you use?</h2>
+<ul>
+<li><strong>A side project, under ~100 videos a day:</strong> fixes 1 and 2. Often enough on their own.</li>
+<li><strong>Steady volume, and you're fine maintaining it:</strong> 2 plus residential proxies (5).</li>
+<li><strong>Transcripts feed an app or an AI agent and you don't want to maintain scraping:</strong> a hosted API (6).</li>
+</ul>
+<p class="note">None of these is permanent. YouTube changes its checks every few weeks, so whatever you choose, make your code tell "blocked, retry later" apart from "this video has no transcript" so it fails loudly instead of quietly returning nothing.</p>
+
+<p class="muted">Updated October 2026. Spotted something out of date? Open an issue on <a href="https://github.com/inmanjeffrey89-cell/yt-transcript-cli/issues">yt-transcript-cli</a>.</p>
+</body></html>
