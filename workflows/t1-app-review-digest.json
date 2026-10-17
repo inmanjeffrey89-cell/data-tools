@@ -3,7 +3,7 @@
  "nodes": [
   {
    "parameters": {
-    "content": "## 📱 Weekly app review digest — both stores, one email\n\n### Who's it for\nAnyone who ships a mobile app — indie developers, product managers and support teams who want to catch bad reviews before they pile up, without checking two store consoles every day.\n\n### How it works\nEvery Monday at 8am the workflow pulls the week's newest reviews for your app from **both the Apple App Store and Google Play** (via two hosted Apify scrapers called over plain HTTP), keeps the last 7 days, then builds one HTML digest: review counts and average rating per store, plus the negative reviews that need a reply, quoted with author, version and date. Gmail sends it to you or your team.\n\n### Requirements\n- An [Apify](https://apify.com) account + API token (runs the two review scrapers)\n- A Gmail account for sending\n\nScraping cost is per review delivered: [$0.0002 on the App Store](https://apify.com/beacondata/app-store-reviews-scraper), [$0.0001 on Google Play](https://apify.com/beacondata/google-play-reviews-scraper) — a typical 200+200-review week is about **$0.06**, and apps with no new reviews cost nothing. Each call carries a hard $1 cost cap.\n\n### How to customize\nChange the schedule, track a competitor's app id, lower the rating threshold for \"needs attention\", or send to Slack instead of Gmail.",
+    "content": "## 📱 Weekly app review digest — both stores, one email\n\n### Who's it for\nAnyone who ships a mobile app — indie developers, product managers and support teams who want to catch bad reviews before they pile up, without checking two store consoles every day.\n\n### How it works\nEvery Monday at 8am the workflow pulls the week's newest reviews for your app from **both the Apple App Store and Google Play** (via two hosted Apify scrapers called over plain HTTP), keeps the last 7 days, then builds one HTML digest: review counts and average rating per store, plus the negative reviews that need a reply, quoted with author, version and date. Gmail sends it to you or your team.\n\n### Requirements\n- An [Apify](https://apify.com) account + API token (runs the two review scrapers)\n- A Gmail account for sending\n\nScraping cost is per review delivered: [$0.0002 on the App Store](https://apify.com/beacondata/app-store-reviews-scraper), [$0.0001 on Google Play](https://apify.com/beacondata/google-play-reviews-scraper) — a typical 200+200-review week is about **$0.06**, and apps with no new reviews cost nothing. Each call carries a hard $1 cost cap.\n\nIf one store can't be read, the digest still goes out and says that store was unavailable, so a failure never looks like a quiet week. Gmail sends retry automatically; a failed run can be retried from Executions without re-running the scrapers.\n\n### How to customize\nChange the schedule, track a competitor's app id, lower the rating threshold for \"needs attention\", or send to Slack instead of Gmail.",
     "height": 1040,
     "width": 560
    },
@@ -13,7 +13,7 @@
     -900,
     -300
    ],
-   "id": "7b07dad7-160f-45a3-9ff6-5f57fb7ad167",
+   "id": "258407f3-1105-47b3-9e3b-627c80410557",
    "name": "Overview"
   },
   {
@@ -29,7 +29,7 @@
     -320,
     -300
    ],
-   "id": "5646694a-acc0-4944-aa68-42ff6501f826",
+   "id": "d652d46b-0a26-47a6-8076-8b515bd12e3e",
    "name": "Setup"
   },
   {
@@ -52,7 +52,7 @@
     180,
     60
    ],
-   "id": "7af384a9-d9a9-4415-91d9-270e6440b9cf",
+   "id": "8ec2eb45-54f4-44b2-8a64-6008ad6c3a78",
    "name": "Every Monday 8am"
   },
   {
@@ -60,31 +60,31 @@
     "assignments": {
      "assignments": [
       {
-       "id": "d183697c-ad65-4fa7-958f-4924b6222b60",
+       "id": "44d27abe-02bd-40f2-846c-39dd91d000c4",
        "name": "appStoreApp",
        "value": "https://apps.apple.com/us/app/instagram/id389801252",
        "type": "string"
       },
       {
-       "id": "6d7289dd-f102-451e-accf-1933f0f10d10",
+       "id": "d6da34a7-c972-4ea3-9427-ddc61cdd1626",
        "name": "playApp",
        "value": "com.instagram.android",
        "type": "string"
       },
       {
-       "id": "8995d1d4-fe88-4bd6-9025-7ab24c9fe8ca",
+       "id": "fc910dc6-215e-427f-b772-24c78f789c92",
        "name": "country",
        "value": "us",
        "type": "string"
       },
       {
-       "id": "c3836a9d-59c1-40b6-8190-d67537b56473",
+       "id": "57012994-339e-42bf-a38e-8e23fe505a83",
        "name": "maxReviews",
        "value": 200,
        "type": "number"
       },
       {
-       "id": "ef9a5261-614b-4bbc-8ab9-9bb958817adb",
+       "id": "3c818e91-a1f5-4b5f-9f71-8892fffa5a1b",
        "name": "digestEmail",
        "value": "you@example.com",
        "type": "string"
@@ -99,7 +99,7 @@
     400,
     60
    ],
-   "id": "79b59ea3-9f97-4b29-bedd-98dd81dcb366",
+   "id": "f0181f1c-d0a4-4d45-af6c-599bbf42692e",
    "name": "App Config"
   },
   {
@@ -121,8 +121,9 @@
     640,
     -60
    ],
-   "id": "217049fa-9762-484f-a3c5-2f8b8c4437af",
-   "name": "Fetch App Store Reviews"
+   "id": "b707d8d5-d2c9-4642-84d3-b1b8e95b8242",
+   "name": "Fetch App Store Reviews",
+   "onError": "continueRegularOutput"
   },
   {
    "parameters": {
@@ -143,8 +144,9 @@
     640,
     180
    ],
-   "id": "8e68e9dc-1794-4653-9fa1-b0b82872181a",
-   "name": "Fetch Google Play Reviews"
+   "id": "95facf2e-5566-4180-8846-302209cbfe99",
+   "name": "Fetch Google Play Reviews",
+   "onError": "continueRegularOutput"
   },
   {
    "parameters": {
@@ -156,12 +158,12 @@
     880,
     60
    ],
-   "id": "9b424040-3727-45a2-95bd-573d6a7d3322",
+   "id": "1c334694-da54-48ea-bdf1-2e1b745c39b9",
    "name": "Combine Both Stores"
   },
   {
    "parameters": {
-    "jsCode": "// Combine both stores' reviews into one weekly HTML digest.\n// HTML is assembled via the tag() helper so the workflow JSON stays free of\n// literal markup (some proxies reject payloads that look like embedded HTML).\nconst LT = String.fromCharCode(60);\nconst GT = String.fromCharCode(62);\nconst tag = (t, attrs, inner) => LT + t + (attrs ? ' ' + attrs : '') + GT + (inner || '') + LT + '/' + t + GT;\n\nconst rows = $input.all().map(i => i.json);\n\n// Normalize the two stores' shapes.\n// Google Play rows have `thumbsUp`; App Store rows have `updated` + `body`.\nconst norm = rows.map(r => {\n  const isPlay = Object.prototype.hasOwnProperty.call(r, 'thumbsUp');\n  return {\n    store: isPlay ? 'Google Play' : 'App Store',\n    rating: Number(r.rating) || 0,\n    text: [r.title, isPlay ? r.text : r.body].filter(Boolean).join(' — ').trim(),\n    author: r.author || 'Anonymous',\n    date: r.updated || r.date || null,\n    version: r.version || '',\n  };\n}).filter(r => r.rating > 0);\n\n// Keep only the last 7 days.\nconst weekAgo = Date.now() - 7 * 24 * 3600 * 1000;\nconst recent = norm.filter(r => r.date && new Date(r.date).getTime() >= weekAgo);\n\nconst esc = (s) => String(s).split('&').join('&amp;').split(LT).join('&lt;').split(GT).join('&gt;');\nconst trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);\nconst stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));\n\nconst byStore = {};\nfor (const r of recent) {\n  (byStore[r.store] = byStore[r.store] || []).push(r);\n}\n\nlet sections = '';\nfor (const store of ['App Store', 'Google Play']) {\n  const list = byStore[store] || [];\n  const avg = list.length ? (list.reduce((a, r) => a + r.rating, 0) / list.length) : 0;\n  const bad = list.filter(r => r.rating <= 2)\n    .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);\n  sections += tag('h3', 'style=\"margin:18px 0 4px\"', store);\n  if (!list.length) {\n    sections += tag('p', 'style=\"color:#666\"', 'No new reviews this week.');\n    continue;\n  }\n  const negCount = list.filter(r => r.rating <= 2).length;\n  const plural = list.length === 1 ? '' : 's';\n  sections += tag('p', '', tag('b', '', String(list.length)) + ' new review' + plural + ' · average ' + tag('b', '', avg.toFixed(2) + '★') + ' · ' + negCount + ' negative');\n  if (bad.length) {\n    sections += tag('p', 'style=\"margin:8px 0 2px\"', tag('b', '', 'Needs attention:'));\n    for (const r of bad) {\n      const meta = esc(r.author) + (r.version ? ' · v' + esc(r.version) : '') + ' · ' + new Date(r.date).toDateString();\n      sections += tag('blockquote', 'style=\"margin:6px 0;padding:8px 12px;background:#faf4f4;border-left:3px solid #c0392b\"',\n        tag('span', 'style=\"color:#c0392b\"', stars(r.rating)) + ' ' + esc(trunc(r.text, 220))\n        + LT + 'br' + GT + tag('small', 'style=\"color:#777\"', meta));\n    }\n  }\n}\n\nconst total = recent.length;\nconst allAvg = total ? (recent.reduce((a, r) => a + r.rating, 0) / total).toFixed(2) : '—';\nconst html = tag('div', 'style=\"font-family:system-ui,Arial,sans-serif;max-width:620px\"',\n  tag('h2', 'style=\"margin:0 0 4px\"', 'Weekly app review digest')\n  + tag('p', 'style=\"color:#555;margin:0 0 12px\"', total + ' new reviews across both stores · overall average ' + allAvg + '★')\n  + sections\n  + LT + 'hr style=\"border:none;border-top:1px solid #eee;margin:20px 0 8px\"' + GT\n  + tag('p', 'style=\"color:#999;font-size:12px\"', 'Sent by your n8n review-digest workflow.'));\n\nreturn [{ json: { html, totalRecent: total, overallAvg: allAvg } }];"
+    "jsCode": "// Combine both stores' reviews into one weekly HTML digest.\n// HTML is assembled via the tag() helper so the workflow JSON stays free of\n// literal markup (some proxies reject payloads that look like embedded HTML).\nconst LT = String.fromCharCode(60);\nconst GT = String.fromCharCode(62);\nconst tag = (t, attrs, inner) => LT + t + (attrs ? ' ' + attrs : '') + GT + (inner || '') + LT + '/' + t + GT;\n\n// Each store is read from its own node, so a store that failed, or answered with\n// nothing, is reported as unavailable instead of looking like a quiet week.\nconst STORES = [\n  { name: 'App Store', node: 'Fetch App Store Reviews', text: (r) => [r.title, r.body] },\n  { name: 'Google Play', node: 'Fetch Google Play Reviews', text: (r) => [r.text] },\n];\nconst rowsOf = (node) => { try { return $(node).all().map((i) => i.json); } catch (e) { return []; } };\nconst reasonOf = (rows) => {\n  const e = rows.find((r) => r.error);\n  if (!e) return 'the store returned no data';\n  if (e.errorType === 'NO_REVIEWS') return 'the store returned no reviews (a brand-new app, or the review feed came back empty)';\n  const msg = typeof e.error === 'string' ? e.error : (e.error && e.error.message) || 'request failed';\n  return 'the request failed: ' + msg;\n};\n\nconst weekAgo = Date.now() - 7 * 24 * 3600 * 1000;\nconst esc = (s) => String(s).split('&').join('&amp;').split(LT).join('&lt;').split(GT).join('&gt;');\nconst trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);\nconst stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));\n\nlet sections = '';\nconst recentAll = [];\nconst unavailable = [];\nfor (const store of STORES) {\n  const rows = rowsOf(store.node);\n  const reviews = rows.filter((r) => Number(r.rating) > 0).map((r) => ({\n    rating: Number(r.rating),\n    text: store.text(r).filter(Boolean).join(' — ').trim(),\n    author: r.author || 'Anonymous',\n    date: r.updated || r.date || null,\n    version: r.version || '',\n  }));\n  sections += tag('h3', 'style=\"margin:18px 0 4px\"', store.name);\n  if (!reviews.length) {\n    unavailable.push(store.name);\n    sections += tag('p', 'style=\"color:#b45309\"', 'Unavailable this week: ' + esc(reasonOf(rows)) + '. This is not counted as a quiet week.');\n    continue;\n  }\n  const list = reviews.filter((r) => r.date && new Date(r.date).getTime() >= weekAgo);\n  recentAll.push(...list);\n  if (!list.length) {\n    sections += tag('p', 'style=\"color:#666\"', '0 new reviews this week.');\n    continue;\n  }\n  const avg = list.reduce((a, r) => a + r.rating, 0) / list.length;\n  const bad = list.filter((r) => r.rating <= 2).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);\n  const plural = list.length === 1 ? '' : 's';\n  sections += tag('p', '', tag('b', '', String(list.length)) + ' new review' + plural + ' · average ' + tag('b', '', avg.toFixed(2) + '★') + ' · ' + bad.length + ' negative');\n  if (bad.length) {\n    sections += tag('p', 'style=\"margin:8px 0 2px\"', tag('b', '', 'Needs attention:'));\n    for (const r of bad) {\n      const meta = esc(r.author) + (r.version ? ' · v' + esc(r.version) : '') + ' · ' + new Date(r.date).toDateString();\n      sections += tag('blockquote', 'style=\"margin:6px 0;padding:8px 12px;background:#faf4f4;border-left:3px solid #c0392b\"',\n        tag('span', 'style=\"color:#c0392b\"', stars(r.rating)) + ' ' + esc(trunc(r.text, 220))\n        + LT + 'br' + GT + tag('small', 'style=\"color:#777\"', meta));\n    }\n  }\n}\n\nconst total = recentAll.length;\nconst allAvg = total ? (recentAll.reduce((a, r) => a + r.rating, 0) / total).toFixed(2) : '—';\nconst summary = unavailable.length === STORES.length\n  ? 'Neither store could be read this week'\n  : total + ' new review' + (total === 1 ? '' : 's') + (total ? ' · overall average ' + allAvg + '★' : '') + (unavailable.length ? ' · ' + unavailable.join(', ') + ' unavailable' : '');\nconst subject = '📱 App reviews: ' + (unavailable.length === STORES.length ? 'stores unavailable this week'\n  : total + ' new this week' + (total ? ' (avg ' + allAvg + '★)' : '') + (unavailable.length ? ', ' + unavailable.join(', ') + ' unavailable' : ''));\nconst html = tag('div', 'style=\"font-family:system-ui,Arial,sans-serif;max-width:620px\"',\n  tag('h2', 'style=\"margin:0 0 4px\"', 'Weekly app review digest')\n  + tag('p', 'style=\"color:#555;margin:0 0 12px\"', esc(summary))\n  + sections\n  + LT + 'hr style=\"border:none;border-top:1px solid #eee;margin:20px 0 8px\"' + GT\n  + tag('p', 'style=\"color:#999;font-size:12px\"', 'Sent by your n8n review-digest workflow.'));\n\nreturn [{ json: { html, subject, totalRecent: total, overallAvg: allAvg, unavailable } }];"
    },
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
@@ -169,13 +171,13 @@
     1100,
     60
    ],
-   "id": "79022fe7-378d-4833-8ffb-2091f0da226a",
+   "id": "40d5b8bb-c119-4ff8-9649-58fb413744c1",
    "name": "Build Weekly Digest"
   },
   {
    "parameters": {
     "sendTo": "={{ $('App Config').first().json.digestEmail }}",
-    "subject": "=📱 App reviews — {{ $json.totalRecent }} new this week (avg {{ $json.overallAvg }}★)",
+    "subject": "={{ $json.subject }}",
     "message": "={{ $json.html }}",
     "options": {
      "senderName": "App Review Digest",
@@ -184,11 +186,14 @@
    },
    "type": "n8n-nodes-base.gmail",
    "typeVersion": 2.1,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
    "position": [
     1320,
     60
    ],
-   "id": "73c1ff9b-9e88-4ae4-9d4f-7ec126c23c5a",
+   "id": "6df0b2ea-1ba2-44d1-ba3e-e9c0223e12ff",
    "name": "Email the Digest"
   }
  ],
