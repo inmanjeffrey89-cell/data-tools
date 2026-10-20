@@ -1,0 +1,753 @@
+{
+ "name": "Email a daily AI summary of new YouTube videos with Apify, OpenAI and Gmail",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## 📺 Daily AI summary of new YouTube videos\n\n### Who's it for\nPeople who follow a few YouTube channels for work, say tech news or a competitor, and want to know each morning what came out and whether it's worth watching.\n\n### How it works\n1. Every morning the workflow asks the YouTube Data API for the latest uploads of each channel on your list.\n2. It drops live streams, premieres that haven't aired and videos under 3 minutes (most Shorts), then keeps the ones from the last 48 hours it hasn't sent you before.\n3. One [Apify](https://apify.com/beacondata/youtube-transcript-scraper) run fetches all the transcripts at once.\n4. OpenAI writes a summary of each video: a TL;DR, the key points, a verdict (must watch, worth a skim or skip) and who it's for.\n5. Gmail sends one email. Videos without a transcript and channels that couldn't be read are listed in it too, so nothing goes missing without a note.\n\nDays with no new videos send nothing.\n\n### Requirements\n- A Google Cloud API key with YouTube Data API v3 enabled. It's free, and a run with 10 channels uses about 11 of the 10,000 daily quota units.\n- An Apify account and API token. Transcripts cost $0.002 per video, and videos without captions are not charged.\n- An OpenAI API key. gpt-5-mini costs well under a cent per video.\n- A Gmail account.\n\n### How to customize\nChange the schedule, the 48-hour window, the cap per run or the minimum length in **Config**. Swap the OpenAI model for any other chat model node, or Gmail for Slack or Outlook.",
+    "height": 1080,
+    "width": 560
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -1180,
+    40
+   ],
+   "id": "61607177-7a84-4f0e-b278-5b5882cbc6bd",
+   "name": "Overview"
+  },
+  {
+   "parameters": {
+    "content": "## 🛠 Setup\n\n1. **Config**: put your channel IDs in `channelIds`, separated by commas. To find one, open the channel, click the \"more\" link under the channel name, then **Share channel** and **Copy channel ID**. It starts with UC.\n2. Still in **Config**, set `recipientEmail`.\n3. **YouTube API key**: in Google Cloud Console, enable **YouTube Data API v3** for a project, then create an API key under **APIs & Services, Credentials**. In n8n create a **Query Auth** credential with Name `key` and the API key as Value, and select it on **Get latest uploads** and **Get video details**.\n4. **Apify**: copy your API token from Apify Console, Settings, API & Integrations. Create a **Header Auth** credential with Name `Authorization` and Value `Bearer YOUR_APIFY_TOKEN`, and select it on **Fetch transcripts**.\n5. Pick your OpenAI credential on **OpenAI Chat Model** and your Gmail credential on **Send digest**.\n6. Click **Execute workflow** once. The first run sends the videos from the last 48 hours; after that each video is sent once.\n7. Activate the workflow.",
+    "height": 860,
+    "width": 440,
+    "color": 7
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -600,
+    40
+   ],
+   "id": "b2788b98-c829-43cd-b64c-79bf53bb0252",
+   "name": "Setup"
+  },
+  {
+   "parameters": {
+    "content": "### 1. Find new uploads\nLatest uploads per channel, then durations and live status for all of them in one call. Videos already sent are dropped.",
+    "height": 420,
+    "width": 1360,
+    "color": 5
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    400,
+    200
+   ],
+   "id": "de5c46fd-cc7f-40af-910a-a53bed87fbcb",
+   "name": "Find new uploads"
+  },
+  {
+   "parameters": {
+    "content": "### 2. Get transcripts\nOne Apify run for the whole batch. A video that fails keeps its reason for the email.",
+    "height": 420,
+    "width": 680,
+    "color": 6
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    1800,
+    200
+   ],
+   "id": "3f1767ff-4337-4d14-8264-084405e5fb6a",
+   "name": "Get transcripts"
+  },
+  {
+   "parameters": {
+    "content": "### 3. Summarize\nThe structured output parser makes the model return the same fields every time, so the email layout doesn't break.",
+    "height": 640,
+    "width": 720,
+    "color": 4
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2520,
+    120
+   ],
+   "id": "54fc6bc0-a9d6-4e8c-8cda-87c050be2bec",
+   "name": "Summarize"
+  },
+  {
+   "parameters": {
+    "content": "### 4. Send\nOne HTML email with summaries first, then videos without a summary and any channel that couldn't be read.",
+    "height": 420,
+    "width": 700,
+    "color": 3
+   },
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3280,
+    200
+   ],
+   "id": "80a3acaa-6847-4927-96c4-5b05930bfbbb",
+   "name": "Send"
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "triggerAtHour": 7
+      }
+     ]
+    }
+   },
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    -40,
+    400
+   ],
+   "id": "8cff29f8-7057-4435-92a9-ae929c9d56bd",
+   "name": "Every morning at 7"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "76e545c9-a339-4cf3-9877-9378c0f0f331",
+       "name": "channelIds",
+       "value": "UCBJycsmduvYEL83R_U4JriQ, UCXuqSBlHAE6Xw-yeJA0Tunw",
+       "type": "string"
+      },
+      {
+       "id": "f748982f-cb06-48e7-bd9c-852c7c7d3c62",
+       "name": "recipientEmail",
+       "value": "you@example.com",
+       "type": "string"
+      },
+      {
+       "id": "f3d818c4-4ba8-4dde-8766-f4c4f9bfe5bf",
+       "name": "language",
+       "value": "en",
+       "type": "string"
+      },
+      {
+       "id": "104396b6-91ba-46d0-97da-29378459efba",
+       "name": "maxAgeHours",
+       "value": 48,
+       "type": "number"
+      },
+      {
+       "id": "d4ece522-3257-458b-9d24-34f7066f7b04",
+       "name": "maxVideosPerRun",
+       "value": 10,
+       "type": "number"
+      },
+      {
+       "id": "91468ca4-f6df-457a-8121-6f459d3cb13a",
+       "name": "minDurationSeconds",
+       "value": 180,
+       "type": "number"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    180,
+    400
+   ],
+   "id": "77a75aed-8962-4722-8984-efd74cabd20a",
+   "name": "Config"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Each channel has an uploads playlist whose ID is the channel ID with UC changed to UU.\nconst cfg = $('Config').first().json;\nconst ids = [];\nfor (const part of String(cfg.channelIds || '').split(/[\\s,]+/).filter(Boolean)) {\n  const m = part.match(/UC[A-Za-z0-9_-]{22}/);\n  if (!m) {\n    throw new Error('\"' + part + '\" is not a channel ID. Channel IDs start with UC and are 24 characters long. '\n      + 'On the channel page click \"more\", then Share channel, then Copy channel ID.');\n  }\n  if (!ids.includes(m[0])) ids.push(m[0]);\n}\nif (!ids.length) throw new Error('Add at least one channel ID to channelIds in the Config node.');\nreturn ids.map((channelId) => ({ json: { channelId, playlistId: 'UU' + channelId.slice(2) } }));"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    440,
+    400
+   ],
+   "id": "d938245d-0e7e-420f-8752-df5ea2246805",
+   "name": "Build uploads playlist list"
+  },
+  {
+   "parameters": {
+    "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpQueryAuth",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "part",
+       "value": "snippet,contentDetails"
+      },
+      {
+       "name": "playlistId",
+       "value": "={{ $json.playlistId }}"
+      },
+      {
+       "name": "maxResults",
+       "value": "10"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    660,
+    400
+   ],
+   "id": "dab03576-2d17-4145-bc62-899fb51af4b3",
+   "name": "Get latest uploads",
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Keep uploads from the last maxAgeHours, newest first. A channel that could not be read is\n// listed in the email; if no channel could be read at all, the run stops with the reason.\nconst cfg = $('Config').first().json;\nconst maxAgeMs = Number(cfg.maxAgeHours || 48) * 3600 * 1000;\nconst channels = $('Build uploads playlist list').all().map((i) => i.json);\nconst pages = $input.all().map((i) => i.json);\nconst errText = (e) => String(typeof e === 'string' ? e : (e && (e.message || e.description)) || 'request failed');\n\nconst videos = [];\nlet failed = 0;\nlet firstError = '';\npages.forEach((page, i) => {\n  if (page.error || !Array.isArray(page.items)) {\n    failed++;\n    firstError = firstError || errText(page.error);\n    return;\n  }\n  for (const it of page.items) {\n    const s = it.snippet || {};\n    const d = it.contentDetails || {};\n    const videoId = d.videoId || (s.resourceId && s.resourceId.videoId);\n    const published = d.videoPublishedAt || s.publishedAt;\n    if (!videoId || !d.videoPublishedAt) continue; // private and deleted entries have no publish date\n    if (Date.now() - Date.parse(published) > maxAgeMs) continue;\n    videos.push({\n      videoId,\n      title: s.title || '',\n      channel: s.videoOwnerChannelTitle || s.channelTitle || '',\n      channelId: channels[i] ? channels[i].channelId : '',\n      published,\n    });\n  }\n});\nif (failed === pages.length) {\n  throw new Error('The YouTube Data API refused every channel (' + firstError.slice(0, 200) + '). '\n    + 'Check the YouTube API key credential and that YouTube Data API v3 is enabled for its project.');\n}\nif (!videos.length) return [];\nvideos.sort((a, b) => Date.parse(b.published) - Date.parse(a.published));\n// One details call takes up to 50 videos. Any beyond that stay new and come in the next run.\nconst recent = videos.slice(0, 50);\nreturn [{ json: { ids: recent.map((v) => v.videoId).join(','), videos: recent } }];"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    880,
+    400
+   ],
+   "id": "9d4a9a86-844c-4ea9-bf11-0a5dd996c94f",
+   "name": "List recent uploads"
+  },
+  {
+   "parameters": {
+    "url": "https://www.googleapis.com/youtube/v3/videos",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpQueryAuth",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "part",
+       "value": "contentDetails,snippet"
+      },
+      {
+       "name": "id",
+       "value": "={{ $json.ids }}"
+      },
+      {
+       "name": "maxResults",
+       "value": "50"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1100,
+    400
+   ],
+   "id": "128305af-cec8-4eba-922b-e3bfb0c2880f",
+   "name": "Get video details"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Drop live streams, premieres that haven't aired and videos under minDurationSeconds (most Shorts).\n// This runs before \"Skip videos already sent\", so a premiere is picked up once it has aired.\nconst cfg = $('Config').first().json;\nconst minSeconds = Number(cfg.minDurationSeconds ?? 180);\nconst seconds = (iso) => {\n  const m = /^P(?:(\\d+)D)?T?(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?$/.exec(String(iso || ''));\n  return m ? (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0) : 0;\n};\nconst details = new Map(($input.first().json.items || []).map((d) => [d.id, d]));\nconst out = [];\nfor (const v of $('List recent uploads').first().json.videos) {\n  const d = details.get(v.videoId);\n  if (!d) continue; // removed or made private since it was listed\n  if (((d.snippet && d.snippet.liveBroadcastContent) || 'none') !== 'none') continue;\n  const length = seconds(d.contentDetails && d.contentDetails.duration);\n  if (length < minSeconds) continue;\n  out.push({ json: { ...v, url: 'https://www.youtube.com/watch?v=' + v.videoId, durationSeconds: length } });\n}\nreturn out;"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1320,
+    400
+   ],
+   "id": "b66852b2-6437-4366-b3a9-7cb3cb3fb1ef",
+   "name": "Keep finished videos"
+  },
+  {
+   "parameters": {
+    "operation": "removeItemsSeenInPreviousExecutions",
+    "dedupeValue": "={{ $json.videoId }}",
+    "options": {}
+   },
+   "type": "n8n-nodes-base.removeDuplicates",
+   "typeVersion": 2,
+   "position": [
+    1560,
+    400
+   ],
+   "id": "4558492d-ad77-4110-b29c-794f37d42af1",
+   "name": "Skip videos already sent"
+  },
+  {
+   "parameters": {
+    "jsCode": "// One Apify run for every new video. Videos over maxVideosPerRun are listed in the email without a summary.\nconst max = Math.max(1, Number($('Config').first().json.maxVideosPerRun || 10));\nconst all = $input.all().map((i) => i.json);\nconst videos = all.slice(0, max);\nreturn [{ json: { videoUrls: videos.map((v) => v.url), videos, overflow: all.slice(max) } }];"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1860,
+    400
+   ],
+   "id": "d001964c-f712-421c-88a8-a092a3a020e5",
+   "name": "Batch videos for transcripts"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.apify.com/v2/acts/beacondata~youtube-transcript-scraper/run-sync-get-dataset-items?timeout=300&maxTotalChargeUsd=1",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ videoUrls: $json.videoUrls, language: $('Config').first().json.language, preferManual: true }) }}",
+    "options": {
+     "timeout": 330000
+    }
+   },
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "onError": "continueRegularOutput",
+   "position": [
+    2080,
+    400
+   ],
+   "id": "467a1c6a-8552-4bbe-8532-8887bee0761d",
+   "name": "Fetch transcripts"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Pair each video with its transcript row. A video without a usable transcript is kept,\n// with the reason, so the email can list it.\nconst batch = $('Batch videos for transcripts').first().json;\nconst rows = $input.all().map((i) => i.json);\nconst runFailed = rows.length > 0 && rows.every((r) => r.error && !r.videoId && !r.url);\nconst runError = runFailed\n  ? String((rows[0].error && rows[0].error.message) || rows[0].error)\n  : '';\nconst byId = new Map();\nfor (const r of rows) {\n  if (r.videoId) byId.set(r.videoId, r);\n}\nconst REASONS = {\n  NO_CAPTIONS: 'the video has no captions',\n  EMPTY_TRANSCRIPT: 'the captions are empty',\n  NOT_FOUND: 'the video is unavailable',\n  LOGIN_REQUIRED: 'the video is private, age-restricted or members-only',\n  RESTRICTED: 'the video is private, age-restricted or members-only',\n  BLOCKED: 'YouTube refused the transcript request',\n};\nconst MAX_CHARS = 12000;\n\nreturn batch.videos.map((v) => {\n  const r = byId.get(v.videoId);\n  if (runError || !r || r.error || !r.text) {\n    const reason = runError\n      ? 'the transcript request failed (' + runError.slice(0, 200) + ')'\n      : !r ? 'no transcript came back for this video'\n      : REASONS[r.errorType] || String(r.error || 'no transcript text');\n    return { json: { ...v, ok: false, reason } };\n  }\n  const text = String(r.text);\n  return { json: {\n    ...v,\n    ok: true,\n    autoCaptions: r.isAutoGenerated === true,\n    lengthMinutes: Math.max(1, Math.round(v.durationSeconds / 60)),\n    truncated: text.length > MAX_CHARS,\n    transcript: text.slice(0, MAX_CHARS),\n  } };\n});"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2300,
+    400
+   ],
+   "id": "e184ff1d-f496-40ff-889b-5ab4c9b3b7b8",
+   "name": "Match transcripts to videos"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "7a0c94bb-d6b8-41cc-9cb4-c2c029cd6a6a",
+       "leftValue": "={{ $json.ok }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    2580,
+    400
+   ],
+   "id": "aa5c0019-b1a6-4176-86e5-e21595014e4a",
+   "name": "Has transcript?"
+  },
+  {
+   "parameters": {
+    "promptType": "define",
+    "text": "=Video: {{ $json.title }}\nChannel: {{ $json.channel }}\nLength: about {{ $json.lengthMinutes }} minutes\n\nReturn:\n- tldr: two or three sentences on what the video actually says\n- keyPoints: three to five specific points, one sentence each\n- verdict: \"must watch\", \"worth a skim\" or \"skip\", for someone who follows this channel for work\n- whoShouldWatch: one sentence\n\nTranscript{{ $json.truncated ? ' (the first part only, the video is long)' : '' }}:\n{{ $json.transcript }}",
+    "hasOutputParser": true,
+    "messages": {
+     "messageValues": [
+      {
+       "message": "You summarize YouTube videos for a daily email. Use only what the transcript says. Be specific: names, numbers, products, claims. No filler, no hype, no advice the speaker did not give."
+      }
+     ]
+    }
+   },
+   "type": "@n8n/n8n-nodes-langchain.chainLlm",
+   "typeVersion": 1.7,
+   "onError": "continueRegularOutput",
+   "position": [
+    2820,
+    260
+   ],
+   "id": "cdec2e61-9f2e-4178-9793-c1736abe70a7",
+   "name": "Summarize video"
+  },
+  {
+   "parameters": {
+    "model": {
+     "__rl": true,
+     "mode": "list",
+     "value": "gpt-5-mini"
+    },
+    "options": {}
+   },
+   "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+   "typeVersion": 1.2,
+   "position": [
+    2760,
+    520
+   ],
+   "id": "6f96679d-a113-481c-896c-f605b716539f",
+   "name": "OpenAI Chat Model"
+  },
+  {
+   "parameters": {
+    "schemaType": "manual",
+    "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"tldr\": {\n      \"type\": \"string\"\n    },\n    \"keyPoints\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"minItems\": 1,\n      \"maxItems\": 6\n    },\n    \"verdict\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"must watch\",\n        \"worth a skim\",\n        \"skip\"\n      ]\n    },\n    \"whoShouldWatch\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"tldr\",\n    \"keyPoints\",\n    \"verdict\",\n    \"whoShouldWatch\"\n  ]\n}"
+   },
+   "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+   "typeVersion": 1.3,
+   "position": [
+    2960,
+    520
+   ],
+   "id": "f3ba50cc-f1af-4a5b-931b-39b08e1f2d4a",
+   "name": "Summary format"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "3b4b0823-d86a-43d7-8bbc-e0df4eb54bc3",
+       "name": "videoId",
+       "value": "={{ $('Has transcript?').item.json.videoId }}",
+       "type": "string"
+      },
+      {
+       "id": "60b1ff48-1e1f-4117-9270-7ad6e3bcc000",
+       "name": "url",
+       "value": "={{ $('Has transcript?').item.json.url }}",
+       "type": "string"
+      },
+      {
+       "id": "734ffe66-8e51-47bb-90ae-a8a39431dfcd",
+       "name": "title",
+       "value": "={{ $('Has transcript?').item.json.title }}",
+       "type": "string"
+      },
+      {
+       "id": "7a0d0f2f-2b22-48a2-874e-fa170b8e8215",
+       "name": "channel",
+       "value": "={{ $('Has transcript?').item.json.channel }}",
+       "type": "string"
+      },
+      {
+       "id": "70d6961b-d35a-45d0-ad33-8e1f2c1a8fc2",
+       "name": "published",
+       "value": "={{ $('Has transcript?').item.json.published }}",
+       "type": "string"
+      },
+      {
+       "id": "90879ce9-131c-4c05-bb30-30b7da1c34f8",
+       "name": "lengthMinutes",
+       "value": "={{ $('Has transcript?').item.json.lengthMinutes }}",
+       "type": "number"
+      },
+      {
+       "id": "467aafa3-a14c-4e10-97c5-51d5a3a51e4c",
+       "name": "summary",
+       "value": "={{ $json.output }}",
+       "type": "object"
+      },
+      {
+       "id": "91cec0a3-7bf6-41e5-bec4-d682e137cab5",
+       "name": "summaryError",
+       "value": "={{ $json.error ? ($json.error.message || $json.error) : '' }}",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    3080,
+    260
+   ],
+   "id": "0fe6b3d7-9585-4e26-bda8-a28377e19648",
+   "name": "Attach summary"
+  },
+  {
+   "parameters": {},
+   "type": "n8n-nodes-base.merge",
+   "typeVersion": 3,
+   "position": [
+    3340,
+    400
+   ],
+   "id": "0320e7ca-22a1-43f5-bb1e-697e9b822fb4",
+   "name": "Combine results"
+  },
+  {
+   "parameters": {
+    "jsCode": "// Build one HTML email. tag() assembles the markup so the workflow JSON holds none.\nconst LT = String.fromCharCode(60);\nconst GT = String.fromCharCode(62);\nconst tag = (t, attrs, inner) => LT + t + (attrs ? ' ' + attrs : '') + GT + (inner || '') + LT + '/' + t + GT;\nconst esc = (s) => String(s == null ? '' : s).split('&').join('&amp;').split(LT).join('&lt;')\n  .split(GT).join('&gt;').split('\"').join('&quot;');\nconst link = (url, text) => tag('a', 'href=\"' + esc(url) + '\" style=\"color:#1d4ed8\"', esc(text));\nconst day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\nconst errText = (e) => String(typeof e === 'string' ? e : (e && (e.message || e.description)) || 'request failed');\n\nconst items = $input.all().map((i) => i.json);\nconst done = items.filter((x) => x.summary && x.summary.tldr);\nconst missing = items.filter((x) => !(x.summary && x.summary.tldr));\nconst overflow = $('Batch videos for transcripts').first().json.overflow || [];\nconst pages = $('Get latest uploads').all().map((i) => i.json);\nconst down = $('Build uploads playlist list').all()\n  .map((c, k) => ({ channelId: c.json.channelId, page: pages[k] || {} }))\n  .filter((c) => c.page.error || !Array.isArray(c.page.items));\n\nconst RANK = { 'must watch': 0, 'worth a skim': 1, skip: 2 };\nconst COLOR = { 'must watch': '#15803d', 'worth a skim': '#b45309', skip: '#6b7280' };\ndone.sort((a, b) => (RANK[a.summary.verdict] ?? 1) - (RANK[b.summary.verdict] ?? 1)\n  || Date.parse(b.published) - Date.parse(a.published));\n\nlet html = '';\nfor (const v of done) {\n  const s = v.summary;\n  const verdict = RANK[s.verdict] === undefined ? 'worth a skim' : s.verdict;\n  const meta = [esc(v.channel), day(v.published), v.lengthMinutes ? v.lengthMinutes + ' min' : '']\n    .filter(Boolean).join(' · ');\n  const badge = tag('span', 'style=\"color:' + COLOR[verdict] + ';font-weight:600\"', esc(verdict));\n  const points = (Array.isArray(s.keyPoints) ? s.keyPoints : []).map((p) => tag('li', '', esc(p))).join('');\n  html += tag('h3', 'style=\"margin:22px 0 2px\"', link(v.url, v.title))\n    + tag('div', 'style=\"color:#555;font-size:13px\"', meta + ' · ' + badge)\n    + tag('p', '', esc(s.tldr))\n    + (points ? tag('ul', '', points) : '')\n    + (s.whoShouldWatch ? tag('p', 'style=\"color:#555;font-size:13px\"', 'Who it is for: ' + esc(s.whoShouldWatch)) : '');\n}\n\nconst others = missing.map((v) => tag('li', '', link(v.url, v.title) + ' (' + esc(v.channel) + '): '\n  + esc(v.reason || ('no summary, ' + (v.summaryError || 'the model call failed')))))\n  .concat(overflow.map((v) => tag('li', '', link(v.url, v.title) + ' (' + esc(v.channel)\n  + '): over the maxVideosPerRun limit, not summarized')));\nif (others.length) html += tag('h3', 'style=\"margin:28px 0 4px\"', 'New, without a summary') + tag('ul', '', others.join(''));\n\nif (down.length) {\n  const list = down.map((c) => tag('li', '', link('https://www.youtube.com/channel/' + c.channelId, c.channelId)\n    + ': ' + esc(errText(c.page.error).slice(0, 160)) + '. If this keeps happening, check the channel ID.'));\n  html += tag('h3', 'style=\"margin:28px 0 4px\"', 'Channels that could not be read today') + tag('ul', '', list.join(''));\n}\n\nconst total = done.length + missing.length + overflow.length;\nconst must = done.filter((v) => v.summary.verdict === 'must watch').length;\nconst subject = 'YouTube digest: ' + total + ' new video' + (total === 1 ? '' : 's')\n  + (must ? ', ' + must + ' must watch' : '');\nconst body = tag('div', 'style=\"font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:640px;color:#111;line-height:1.5\"',\n  tag('h2', 'style=\"margin:0 0 4px\"', esc(subject)) + html\n  + tag('p', 'style=\"color:#888;font-size:12px;margin-top:28px\"', 'Sent by your n8n workflow. Transcripts by Apify, summaries by OpenAI.'));\nreturn [{ json: { subject, html: body, videos: total } }];"
+   },
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3560,
+    400
+   ],
+   "id": "2cc260e6-8625-415f-b8d0-cc0e0a2781ec",
+   "name": "Build digest email"
+  },
+  {
+   "parameters": {
+    "sendTo": "={{ $('Config').first().json.recipientEmail }}",
+    "subject": "={{ $json.subject }}",
+    "message": "={{ $json.html }}",
+    "options": {
+     "senderName": "YouTube digest",
+     "appendAttribution": false
+    }
+   },
+   "type": "n8n-nodes-base.gmail",
+   "typeVersion": 2.1,
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "position": [
+    3780,
+    400
+   ],
+   "id": "6a8c0388-1315-49e7-9bfb-ddfae526d0d2",
+   "name": "Send digest"
+  }
+ ],
+ "connections": {
+  "Every morning at 7": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Build uploads playlist list",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build uploads playlist list": {
+   "main": [
+    [
+     {
+      "node": "Get latest uploads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get latest uploads": {
+   "main": [
+    [
+     {
+      "node": "List recent uploads",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "List recent uploads": {
+   "main": [
+    [
+     {
+      "node": "Get video details",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get video details": {
+   "main": [
+    [
+     {
+      "node": "Keep finished videos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Keep finished videos": {
+   "main": [
+    [
+     {
+      "node": "Skip videos already sent",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Skip videos already sent": {
+   "main": [
+    [
+     {
+      "node": "Batch videos for transcripts",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Batch videos for transcripts": {
+   "main": [
+    [
+     {
+      "node": "Fetch transcripts",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch transcripts": {
+   "main": [
+    [
+     {
+      "node": "Match transcripts to videos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Match transcripts to videos": {
+   "main": [
+    [
+     {
+      "node": "Has transcript?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Has transcript?": {
+   "main": [
+    [
+     {
+      "node": "Summarize video",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Combine results",
+      "type": "main",
+      "index": 1
+     }
+    ]
+   ]
+  },
+  "Summarize video": {
+   "main": [
+    [
+     {
+      "node": "Attach summary",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Attach summary": {
+   "main": [
+    [
+     {
+      "node": "Combine results",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Combine results": {
+   "main": [
+    [
+     {
+      "node": "Build digest email",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build digest email": {
+   "main": [
+    [
+     {
+      "node": "Send digest",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "OpenAI Chat Model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Summarize video",
+      "type": "ai_languageModel",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Summary format": {
+   "ai_outputParser": [
+    [
+     {
+      "node": "Summarize video",
+      "type": "ai_outputParser",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "pinData": {}
+}

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>n8n workflow templates — app reviews, YouTube transcripts, keyword research</title><meta name="description" content="Ready-to-import n8n workflows: weekly App Store + Google Play review digest, YouTube channel transcripts to Google Sheets, autocomplete keyword research, AI video summaries. Import from URL and run.">
+<title>n8n workflow templates — app reviews, YouTube transcripts, keyword research</title><meta name="description" content="Ready-to-import n8n workflows: weekly App Store + Google Play review digest, YouTube channel transcripts to Google Sheets, autocomplete keyword research, AI video summaries, a daily digest of new videos from YouTube channels. Import from URL and run.">
 <link rel="canonical" href="https://inmanjeffrey89-cell.github.io/data-tools/n8n-workflows">
 <style>body{max-width:720px;margin:2rem auto;padding:0 1rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a}
 h1{font-size:1.8rem;line-height:1.2}h2{margin-top:2.2rem}code,pre{background:#f4f4f5;border-radius:6px}pre{padding:1rem;overflow:auto}code{padding:2px 5px}
@@ -7,7 +7,7 @@ a{color:#1d4ed8}.cta{display:inline-block;background:#1d4ed8;color:#fff;padding:
 .muted{color:#666}nav a{margin-right:1rem}.cost{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.6rem 1rem;margin:.6rem 0}</style></head><body>
 <nav><a href="/data-tools/">← all tools</a></nav>
 <h1>n8n workflow templates</h1>
-<p>Four ready-to-import workflows for jobs people usually babysit by hand. Each one calls a hosted scraper over plain HTTP — no community nodes, works on n8n Cloud and self-hosted. In n8n: <strong>Workflow → Import from URL</strong>, paste the link, connect two credentials, run.</p>
+<p>Five ready-to-import workflows for jobs people usually babysit by hand. Each one calls a hosted scraper over plain HTTP — no community nodes, works on n8n Cloud and self-hosted. In n8n: <strong>Workflow → Import from URL</strong>, paste the link, connect two credentials, run.</p>
 
 <h2 id="app-review-digest">1 · Weekly App Store + Google Play review digest → Gmail</h2>
 <p>Every Monday: both stores' new reviews for your app, one email — counts, average rating per store, and the negative reviews that need a reply, quoted with author and version.</p>
@@ -29,7 +29,12 @@ a{color:#1d4ed8}.cta{display:inline-block;background:#1d4ed8;color:#fff;padding:
 <pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t4-youtube-ai-summary-gmail.json</pre>
 <div class="cost">Runs on <a href="https://apify.com/beacondata/youtube-transcript-scraper">YouTube Transcript Scraper</a> ($0.002/video; uncaptioned videos free) + your OpenAI key (under a cent per brief with GPT-4o-mini).</div>
 
-<h2>Setup (same for all four)</h2>
+<h2 id="channel-digest">5 · Daily AI summary of new videos from the YouTube channels you follow → Gmail</h2>
+<p>List the channels once. Every morning you get one email with their new videos: a TL;DR, key points and a must watch, worth a skim or skip verdict for each. Shorts, live streams and premieres that haven't aired are skipped, each video is sent once, and days with nothing new send nothing.</p>
+<pre>https://inmanjeffrey89-cell.github.io/data-tools/workflows/t4b-youtube-channel-digest.json</pre>
+<div class="cost">Runs on <a href="https://apify.com/beacondata/youtube-transcript-scraper">YouTube Transcript Scraper</a> ($0.002/video; uncaptioned videos free) + your OpenAI key (gpt-5-mini, under a cent per video). New uploads come from the YouTube Data API, which needs a free Google Cloud API key, added in n8n as a <strong>Query Auth</strong> credential named <code>key</code>.</div>
+
+<h2>Setup (same for all five)</h2>
 <ol>
 <li>Create an <a href="https://apify.com">Apify</a> account and copy your API token (Console → Settings → API &amp; Integrations).</li>
 <li>In n8n, add a <strong>Header Auth</strong> credential — Name: <code>Authorization</code>, Value: <code>Bearer YOUR_APIFY_TOKEN</code> — and select it on the HTTP node(s).</li>
